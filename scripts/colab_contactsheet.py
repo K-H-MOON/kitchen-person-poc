@@ -16,11 +16,29 @@ COLS, ROWS = 6, 5          # 시트 한 장에 30칸
 CELL_W = 320               # 칸 가로 픽셀. 사람이 작게 나오면 480으로 올릴 것
 ROOT = '/content/frames'
 
+# --- 자료를 어디서 읽을지 -------------------------------------------------
+# 30MB 업로드 한도를 넘는 zip 이 있으므로 기본은 구글 드라이브 연결임.
+# 드라이브 '내 드라이브' 안에 person_frames 폴더를 만들고 zip 을 넣어 둘 것.
+USE_DRIVE = True
+DRIVE_DIR = '/content/drive/MyDrive/person_frames'
+ONLY = []                  # 특정 zip 만 쓰려면 이름을 적음. 비우면 전부
+# ---------------------------------------------------------------------------
+
 shutil.rmtree(ROOT, ignore_errors=True)
 os.makedirs(ROOT, exist_ok=True)
-up = files.upload()
 
-for n in [k for k in up if k.lower().endswith('.zip')]:
+if USE_DRIVE:
+    from google.colab import drive
+    drive.mount('/content/drive')
+    zips = sorted(glob.glob(f'{DRIVE_DIR}/*.zip'))
+    assert zips, f'{DRIVE_DIR} 에서 zip 을 찾지 못했습니다'
+    if ONLY:
+        zips = [z for z in zips if os.path.basename(z) in ONLY]
+    print('읽을 zip:', [os.path.basename(z) for z in zips])
+else:
+    zips = [k for k in files.upload() if k.lower().endswith('.zip')]
+
+for n in zips:
     with zipfile.ZipFile(n) as z:
         for info in z.infolist():
             if info.is_dir():
